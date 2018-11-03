@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  Ec2Subnets:
+    Type: List<AWS::EC2::Subnet::Id>
+Resources:
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: 'default-cluster'
+  Ec2InstanceLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-0922553b7b0369273
+        InstanceType: t3.micro
+        BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp2
+            DeleteOnTermination: true
+        InstanceMarketOptions:
+          SpotOptions:
+            SpotInstanceType: one-time
+            InstanceInterruptionBehavior: terminate
+          MarketType: spot
+        IamInstanceProfile:
+          Arn: !ImportValue 'EC2IAMProfileArn'
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash -xe
+            yum update -y
+            amazon-linux-extras disable docker
+            amazon-linux-extras install -y ecs
+            echo ECS_CLUSTER=default-cluster >> /etc/ecs/ecs.config
+            systemd-run --on-active=60 /bin/systemctl enable --now ecs
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref Ec2Subnets
+      LaunchTemplate:
+        LaunchTemplateId: !Ref Ec2InstanceLaunchTemplate
+        Version: !GetAtt 'Ec2InstanceLaunchTemplate.LatestVersionNumber'
+      MinSize: 1
+      MaxSize: 1
+      DesiredCapacity: 1
