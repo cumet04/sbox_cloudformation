@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  ECSClusterName:
+    Type: String
+    Default: default-cluster
+Resources:
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref ECSClusterName
+  Ec2InstanceLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-0922553b7b0369273
+        InstanceType: t3.nano
+        BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp2
+            DeleteOnTermination: true
+        InstanceMarketOptions:
+          SpotOptions:
+            SpotInstanceType: one-time
+            InstanceInterruptionBehavior: terminate
+          MarketType: spot
+        IamInstanceProfile:
+          Arn: !ImportValue 'EC2IAMProfileArn'
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            yum update -y
+            amazon-linux-extras disable docker
+            amazon-linux-extras install -y ecs
+            echo ECS_CLUSTER=${ECSClusterName} >> /etc/ecs/ecs.config
+            systemd-run --on-active=60 /bin/systemctl enable --now ecs
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+      - !ImportValue Subnet1
+      - !ImportValue Subnet2
+      - !ImportValue Subnet3
+      - !ImportValue Subnet4
+      - !ImportValue Subnet5
+      - !ImportValue Subnet6
+      LaunchTemplate:
+        LaunchTemplateId: !Ref Ec2InstanceLaunchTemplate
+        Version: !GetAtt 'Ec2InstanceLaunchTemplate.LatestVersionNumber'
+      MinSize: 1
+      MaxSize: 1
+      DesiredCapacity: 1

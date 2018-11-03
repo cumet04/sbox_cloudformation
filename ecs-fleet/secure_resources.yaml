@@ -1,0 +1,162 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  ECSEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+  EC2IAMProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+      - !Ref 'ECSEC2Role'
+
+  FleetVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref FleetVPC
+      InternetGatewayId: !Ref InternetGateway
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachGateway
+    Properties:
+      VpcId: !Ref FleetVPC
+  InternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: true
+      CidrBlock: 10.0.1.0/24
+      VpcId: !Ref FleetVPC
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref RouteTable
+
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: true
+      CidrBlock: 10.0.2.0/24
+      VpcId: !Ref FleetVPC
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet2
+      RouteTableId: !Ref RouteTable
+
+  Subnet3:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      AvailabilityZone: "us-east-1c"
+      MapPublicIpOnLaunch: true
+      CidrBlock: 10.0.3.0/24
+      VpcId: !Ref FleetVPC
+  SubnetRouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet3
+      RouteTableId: !Ref RouteTable
+
+  Subnet4:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      AvailabilityZone: "us-east-1d"
+      MapPublicIpOnLaunch: true
+      CidrBlock: 10.0.4.0/24
+      VpcId: !Ref FleetVPC
+  SubnetRouteTableAssociation4:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet4
+      RouteTableId: !Ref RouteTable
+
+  Subnet5:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      AvailabilityZone: "us-east-1e"
+      MapPublicIpOnLaunch: true
+      CidrBlock: 10.0.5.0/24
+      VpcId: !Ref FleetVPC
+  SubnetRouteTableAssociation5:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet5
+      RouteTableId: !Ref RouteTable
+
+  Subnet6:
+    Type: AWS::EC2::Subnet
+    DependsOn: AttachGateway
+    Properties:
+      AvailabilityZone: "us-east-1f"
+      MapPublicIpOnLaunch: true
+      CidrBlock: 10.0.6.0/24
+      VpcId: !Ref FleetVPC
+  SubnetRouteTableAssociation6:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet6
+      RouteTableId: !Ref RouteTable
+
+Outputs:
+  EC2IAMProfileArn:
+    Value: !GetAtt 'EC2IAMProfile.Arn'
+    Export:
+      Name: EC2IAMProfileArn
+  Subnet1:
+    Value: !Ref Subnet1
+    Export:
+      Name: Subnet1
+  Subnet2:
+    Value: !Ref Subnet2
+    Export:
+      Name: Subnet2
+  Subnet3:
+    Value: !Ref Subnet3
+    Export:
+      Name: Subnet3
+  Subnet4:
+    Value: !Ref Subnet4
+    Export:
+      Name: Subnet4
+  Subnet5:
+    Value: !Ref Subnet5
+    Export:
+      Name: Subnet5
+  Subnet6:
+    Value: !Ref Subnet6
+    Export:
+      Name: Subnet6
