@@ -3,14 +3,14 @@ Resources:
   ECSEC2Role:
     Type: AWS::IAM::Role
     Properties:
-      AssumeRolePolicyDocument: 
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
-        Statement: 
+        Statement:
           - Effect: "Allow"
-            Principal: 
-              Service: 
+            Principal:
+              Service:
                 - "ec2.amazonaws.com"
-            Action: 
+            Action:
               - "sts:AssumeRole"
       Path: /
       ManagedPolicyArns:
@@ -22,6 +22,23 @@ Resources:
       Path: /
       Roles:
       - !Ref 'ECSEC2Role'
+
+  SpotFleetServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "spotfleet.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetRole
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole
 
   FleetVPC:
     Type: AWS::EC2::VPC
@@ -136,6 +153,10 @@ Outputs:
     Value: !GetAtt 'EC2IAMProfile.Arn'
     Export:
       Name: EC2IAMProfileArn
+  SpotFleetServiceRoleArn:
+    Value: !GetAtt 'SpotFleetServiceRole.Arn'
+    Export:
+      Name: SpotFleetServiceRoleArn
   Subnet1:
     Value: !Ref Subnet1
     Export:

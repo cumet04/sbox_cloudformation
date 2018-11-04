@@ -20,11 +20,6 @@ Resources:
             VolumeSize: 8
             VolumeType: gp2
             DeleteOnTermination: true
-        InstanceMarketOptions:
-          SpotOptions:
-            SpotInstanceType: one-time
-            InstanceInterruptionBehavior: terminate
-          MarketType: spot
         IamInstanceProfile:
           Arn: !ImportValue 'EC2IAMProfileArn'
         UserData:
@@ -35,19 +30,24 @@ Resources:
             amazon-linux-extras install -y ecs
             echo ECS_CLUSTER=${ECSClusterName} >> /etc/ecs/ecs.config
             systemd-run --on-active=60 /bin/systemctl enable --now ecs
-  AutoScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
+  SpotFleet:
+    Type: AWS::EC2::SpotFleet
     Properties:
-      VPCZoneIdentifier:
-      - !ImportValue Subnet1
-      - !ImportValue Subnet2
-      - !ImportValue Subnet3
-      - !ImportValue Subnet4
-      - !ImportValue Subnet5
-      - !ImportValue Subnet6
-      LaunchTemplate:
-        LaunchTemplateId: !Ref Ec2InstanceLaunchTemplate
-        Version: !GetAtt 'Ec2InstanceLaunchTemplate.LatestVersionNumber'
-      MinSize: 1
-      MaxSize: 1
-      DesiredCapacity: 1
+      SpotFleetRequestConfigData:
+        IamFleetRole: !ImportValue SpotFleetServiceRoleArn
+        AllocationStrategy: diversified
+        TargetCapacity: 6
+        LaunchTemplateConfigs:
+        - LaunchTemplateSpecification:
+            LaunchTemplateId: !Ref Ec2InstanceLaunchTemplate
+            Version: !GetAtt 'Ec2InstanceLaunchTemplate.LatestVersionNumber'
+          Overrides:
+          - SubnetId:
+              Fn::Join:
+              - ','
+              - - !ImportValue Subnet1
+                - !ImportValue Subnet2
+                - !ImportValue Subnet3
+                - !ImportValue Subnet4
+                - !ImportValue Subnet5
+                - !ImportValue Subnet6
